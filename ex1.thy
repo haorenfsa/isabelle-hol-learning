@@ -76,28 +76,80 @@ text \<open>explain of above by chatgpt:
 
 value "count [0,1,2,0] (0::nat)"
 
-text \<open>auto proof by induct\<close>
+text \<open>auto proof\<close>
 theorem "count xs x \<le> length xs"
   by(induct xs) auto
 
-text \<open>manually proof\<close>
-theorem count_length: "count xs x \<le> length xs"
-proof -
-  fix xs
-  show "count xs x \<le> length xs"
-  proof (induct xs)
-    case Nil
-    then show ?case by simp
+text \<open>proof by induct using simp\<close>
+theorem "count xs x \<le> length xs"
+proof (induct xs)
+  case Nil
+  then show ?case by simp
+next
+  case (Cons a xs')
+  assume IH: "count xs' x \<le> length xs'"
+  show "count (a # xs') x \<le> length (a # xs')"
+  proof (cases "a = x")
+    case True
+    with IH show ?thesis by simp
   next
-    case (Cons a xs')
-    assume IH: "count xs' x \<le> length xs'"
-    show "count (a # xs') x \<le> length (a # xs')"
-    proof (cases "a = x")
-      case True
-      then show ?thesis by simp
-    next
-      case False
-      then show ?thesis by simp
-    qed
+    case False
+    with IH show ?thesis by simp
+  qed
+qed
+
+
+text \<open>replace simp with more detail\<close>
+theorem "count xs x \<le> length xs"
+proof (induct xs)
+  case Nil
+  have A:"count [] x = 0" by simp (*(metis count.simps(1))*)
+  have B:"length [] = 0" by simp
+  with A have C:"count [] x = length []" by simp
+  from C have D: "count [] x \<le> length []" by simp
+  from D show ?case .
+next
+  case (Cons a xs') 
+  then have A:"count xs' x \<le> length xs'" by simp
+  have B:"length (a # xs') = Suc (length xs')" by simp
+  then show C:"count (a # xs') x \<le> length (a # xs')"
+  proof (cases "a = x")
+    case True
+    then have a:"count (a # xs') x = Suc (count xs' x)" by simp
+    with A and B have "count (a # xs') x \<le> length (a # xs')" by simp
+    then show ?thesis .
+  next
+    case False
+    then have a: "count (a # xs') x = count xs' x" by simp
+    with A and B have "count (a # xs') x \<le> length (a # xs')" by simp
+    then show ?thesis .
+  qed
+qed
+
+
+text \<open>replace all simp by exact rule\<close>
+theorem "count xs x \<le> length xs"
+proof (induct xs)
+  case Nil
+  have A:"count [] x = 0" by (metis count.simps(1)) (*by count definition case 1*)
+  have B:"length [] = 0" by (metis list.size(3)) (*by list.size definition*)
+  with A have C:"count [] x = length []" by (rule trans_sym)
+  from C have D: "count [] x \<le> length []" by (rule eq_refl)
+  from D show ?case .
+next
+  case (Cons a xs') 
+  then have A:"count xs' x \<le> length xs'" by (metis)
+  have B:"length (a # xs') = Suc (length xs')" by (rule length_Cons)
+  then show C:"count (a # xs') x \<le> length (a # xs')"
+  proof (cases "a = x")
+    case True
+    then have a:"count (a # xs') x = Suc (count xs' x)" by (metis count.simps(2))
+    with A and B have "count (a # xs') x \<le> length (a # xs')" by simp (*todo*)
+    then show ?thesis .
+  next
+    case False
+    then have a: "count (a # xs') x = count xs' x" by (metis count.simps(2))
+    with A and B have "count (a # xs') x \<le> length (a # xs')" by simp (*todo*)
+    then show ?thesis .
   qed
 qed
